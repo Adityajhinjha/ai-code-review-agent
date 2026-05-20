@@ -17,6 +17,12 @@ An AI-powered code review tool that analyzes Python GitHub repositories and surf
 
 ---
 
+## Live Demo
+
+https://codesight-ai-code-review-agent.streamlit.app
+
+---
+
 ## 🗂️ Project Structure
 
 ```
