@@ -17,13 +17,15 @@ client = OpenAI(
 MODEL_NAME = "llama-3.3-70b-versatile"
 
 
-def load_prompt() -> str:
-    """Load review system prompt from file."""
-    with open("prompts/review_prompt.txt", "r", encoding="utf-8") as file:
+def load_prompt(filename: str) -> str:
+    """Load a system prompt from the prompts directory."""
+    path = os.path.join("prompts", filename)
+    with open(path, "r", encoding="utf-8") as file:
         return file.read()
 
 
-SYSTEM_PROMPT = load_prompt()
+SYSTEM_PROMPT  = load_prompt("review_prompt.txt")
+SUMMARY_PROMPT = load_prompt("summary_prompt.txt")
 
 
 def build_syntax_error_notice(error_info: dict) -> str:
@@ -95,3 +97,63 @@ def review_code_chunk(chunk: dict) -> dict:
     except Exception as e:
         print(f"Review failed for {chunk['name']}: {e}")
         return {"issues": []}
+
+
+def summarize_reviews(all_reviews: list) -> dict:
+    """
+    Send all chunk reviews to the LLM to produce a repo-level health summary.
+
+    Args:
+        all_reviews: The full list of review dicts returned by run_review_pipeline.
+
+    Returns:
+        A dict matching the summary_prompt.txt schema, or a fallback on failure.
+    """
+    if not all_reviews:
+        return {
+            "health_score": 100,
+            "health_label": "Excellent",
+            "issue_breakdown": {"high": 0, "medium": 0, "low": 0, "total": 0},
+            "most_problematic": [],
+            "top_critical_issues": [],
+            "recurring_patterns": [],
+            "positive_observations": ["No issues found across all reviewed chunks."],
+            "recommended_next_steps": ["Increase MAX_CHUNKS to review more of the codebase."],
+        }
+
+    user_message = f"""Here are the code review results for all chunks in the repository.
+Produce a high-level repository health summary based on these reviews.
+
+Reviews:
+{json.dumps(all_reviews, indent=2)}
+"""
+
+    try:
+        print("\nGenerating repository summary...")
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            temperature=0.2,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": SUMMARY_PROMPT},
+                {"role": "user",   "content": user_message},
+            ]
+        )
+
+        result = response.choices[0].message.content
+        summary = json.loads(result)
+        print("Summary generated successfully.\n")
+        return summary
+
+    except Exception as e:
+        print(f"Summary generation failed: {e}")
+        return {
+            "health_score": 0,
+            "health_label": "Unknown",
+            "issue_breakdown": {"high": 0, "medium": 0, "low": 0, "total": 0},
+            "most_problematic": [],
+            "top_critical_issues": [],
+            "recurring_patterns": [],
+            "positive_observations": [],
+            "recommended_next_steps": ["Summary generation failed. Check logs for details."],
+        }
