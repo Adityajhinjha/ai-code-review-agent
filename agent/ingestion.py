@@ -42,7 +42,7 @@ def clone_repository(repo_url: str) -> str:
 
     # Wipe previous clone — using error handler for Windows read-only files
     if os.path.exists(CLONE_DIR):
-        shutil.rmtree(CLONE_DIR, onexc=_force_remove_readonly)
+        shutil.rmtree(CLONE_DIR, onerror=_force_remove_readonly)
 
     os.makedirs(CLONE_DIR, exist_ok=True)
 
