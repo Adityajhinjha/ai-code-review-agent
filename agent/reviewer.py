@@ -14,7 +14,7 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-MODEL_NAME = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+MODEL_NAME = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 
 
 def load_prompt(filename: str) -> str:
